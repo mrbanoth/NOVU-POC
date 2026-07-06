@@ -85,35 +85,38 @@ The HRMS `notification-service` (in its own compose network) calls the Novu API 
 for `FRONTEND_URL`. The bridge is a small best-effort client added to notification-service behind a
 `NOTIFY_ENGINE=legacy|dual|novu` flag; nothing else in HRMS changes.
 
-## Quickstart (3 commands, no manual dashboard clicks)
+## Quickstart (3 commands)
 
 ```powershell
 cd deploy; docker compose --env-file .env up -d          # 1. start Novu
-cd ..;     powershell -File scripts/bootstrap.ps1        # 2. auto-configure (org, keys, HMAC, integrations, workflows)
-cd demo/backend; pip install -r requirements.txt; uvicorn app:app --port 4200   # 3. run the demo
+cd ..;     powershell -File scripts/configure.ps1        # 2. provision your org (HMAC, SMTP, workflows)
+cd demo/backend; pip install -r requirements.txt; uvicorn app:app --host 0.0.0.0 --port 4200   # 3. demo
 ```
 
-Then open **http://localhost:4200** → switch tenant **acme ↔ globex** with the *same* user id → two
-isolated feeds. Send a test → email lands in **Mailpit** (http://localhost:8025). Push pipeline at
-http://localhost:4200/push. Full step-by-step with expected results: **[docs/TESTING.md](docs/TESTING.md)**.
+Open **http://localhost:4200** — an HRMS notification app with **3 roles** (Superadmin, Tenant
+Admin, Employee), a **🔔 bell**, and a **live socket status light (green/red)**. Sign in as an
+Employee, submit a timesheet → the Tenant Admin's bell lights up in real time with a Chrome
+notification. Emails land in **Mailpit** (http://localhost:8025). Cross-tenant = isolated.
+Full walkthrough: **[docs/TESTING.md](docs/TESTING.md)**. Real background push: **[docs/PUSH-FCM.md](docs/PUSH-FCM.md)**.
 
-`scripts/bootstrap.ps1` provisions everything through Novu's API (registration → keys → HMAC →
-SMTP/push integrations → workflows) and writes `NOVU_API_KEY` + `NOVU_APPLICATION_IDENTIFIER` into
-`deploy/.env`. Idempotent - safe to re-run. Reusing this in another project: **[docs/REUSE.md](docs/REUSE.md)**.
+Provisioning: `scripts/configure.ps1` sets up an **existing** org from its Secret Key (reads
+`deploy/.env`); `scripts/bootstrap.ps1` creates + provisions a **brand-new** org headlessly.
+Both idempotent. Reuse in another project: **[docs/REUSE.md](docs/REUSE.md)**.
 
 ## Status — verified working end-to-end
 
-- [x] **Novu stack** — 7/7 containers healthy on Docker 29.4.3; API/WS/Mailpit/dashboard reachable.
-- [x] **One-command bootstrap** — org, keys, HMAC, SMTP + push integrations, 4 workflows; idempotent.
-- [x] **In-app (Inbox)** — HMAC-isolated; live two-tenant demo shows `acme:u1` and `globex:u1` feeds
-      **do not** cross; forged HMAC is rejected (400). HMAC byte-identical to Novu's algorithm.
-- [x] **Email** — business-event emails land in Mailpit (the gap HRMS has today). ✔ verified.
-- [x] **Push** — channel-agnostic (FCM/APNS/Expo/webhook); local pipeline via Push Webhook. ✔ wired.
-- [x] **Resilience** — bridge is best-effort; Novu down ⇒ caller still succeeds (dual mode).
-- [x] **Docs** — architecture, security, operations, **testing guide**, **reuse guide**.
+- [x] **Novu stack** — 7/7 containers healthy on Docker 29.4.3.
+- [x] **3-role HRMS model** — Superadmin / Tenant Admin / Employee across 2 tenants; role-based
+      actions; fan-out verified (employee→admin, admin→employee, superadmin→all admins).
+- [x] **In-app bell** — HMAC-isolated; cross-tenant leakage impossible (verified); forged HMAC → 400.
+- [x] **Real-time socket** — live `notification_received` over Novu WS verified with a real
+      socket.io client; green/red status light; instant bell + native Chrome notification.
+- [x] **Email** — business-event emails land in Mailpit (the gap HRMS has today).
+- [x] **Push** — Tier 1 foreground Chrome notifications working now; Tier 2 background via FCM (guide).
+- [x] **Resilience** — best-effort bridge; Novu down ⇒ caller still succeeds.
 
-Read next: **[docs/TESTING.md](docs/TESTING.md)** (how to test) · **[docs/REUSE.md](docs/REUSE.md)**
-(use in another project) · **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** · **[docs/SECURITY.md](docs/SECURITY.md)**.
+Read next: **[docs/TESTING.md](docs/TESTING.md)** (manual tests) · **[docs/PUSH-FCM.md](docs/PUSH-FCM.md)**
+(real background push) · **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** · **[docs/SECURITY.md](docs/SECURITY.md)** · **[docs/REUSE.md](docs/REUSE.md)**.
 
 Reference (read-only): the upstream Novu clone lives at `..\Novu\novu` and is used only to
 source the official compose file and read code — it is never built from source.

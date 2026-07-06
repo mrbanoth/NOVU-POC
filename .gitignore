@@ -3,6 +3,9 @@ deploy/.env
 **/.env
 !**/.env.example
 
+# FCM: your real Firebase web config (copy of the .example)
+demo/frontend/firebase-config.js
+
 # Node / Python bridge artifacts
 node_modules/
 __pycache__/

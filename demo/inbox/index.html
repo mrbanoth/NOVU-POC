@@ -3,179 +3,205 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HRMS x Novu - Notification Simulator</title>
+<title>HRMS Notifications - POC</title>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <style>
-  :root { --bg:#0f1220; --card:#191d31; --line:#2a3050; --fg:#e7e9f3; --mut:#9aa3c4; --acc:#7e52f4; --ok:#39d98a; --warn:#ffb020; }
-  * { box-sizing:border-box; }
-  body { margin:0; font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--fg); }
-  header { padding:16px 22px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
-  header h1 { margin:0; font-size:17px; } header .sub { color:var(--mut); font-size:12px; }
-  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; background:rgba(126,82,244,.15); color:#c7b6ff; }
-  .grid { display:grid; grid-template-columns:250px 1fr 340px; gap:14px; padding:14px; align-items:start; }
-  @media (max-width:1100px){ .grid { grid-template-columns:1fr; } }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
-  .card h3 { margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--mut); }
-  .tenant-label { font-size:11px; color:var(--mut); margin:10px 0 4px; text-transform:uppercase; letter-spacing:.5px; }
-  .persona { display:flex; align-items:center; gap:9px; padding:8px 9px; border:1px solid var(--line); border-radius:9px; margin-bottom:6px; cursor:pointer; background:#12162a; }
-  .persona:hover { border-color:var(--acc); }
-  .persona.active { border-color:var(--acc); background:rgba(126,82,244,.12); }
-  .persona .av { width:26px; height:26px; border-radius:50%; background:var(--acc); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
-  .persona .n { font-weight:600; font-size:13px; } .persona .r { font-size:11px; color:var(--mut); }
-  .badge { margin-left:auto; background:var(--acc); color:#fff; border-radius:999px; min-width:20px; height:20px; padding:0 6px; font-size:11px; display:flex; align-items:center; justify-content:center; }
-  .evt { border:1px solid var(--line); border-radius:9px; padding:10px; margin-bottom:8px; background:#12162a; }
-  .evt .l { font-weight:600; font-size:13px; } .evt .f { font-size:11px; color:var(--mut); margin:2px 0 8px; }
-  .evt button { width:100%; background:var(--acc); color:#fff; border:0; border-radius:7px; padding:7px; font-weight:600; cursor:pointer; }
-  .evt button:hover { filter:brightness(1.1); }
-  .feed { list-style:none; margin:0; padding:0; }
-  .feed li { border:1px solid var(--line); border-radius:10px; padding:11px 13px; margin-bottom:9px; background:#12162a; }
-  .feed li.unread { border-left:3px solid var(--acc); }
-  .feed .t { font-weight:600; } .feed .m { color:var(--mut); margin-top:2px; font-size:13px; } .feed .d { color:#6a7299; font-size:11px; margin-top:6px; }
-  .empty { color:var(--mut); text-align:center; padding:26px; font-size:13px; }
-  .who { font-size:12px; min-height:18px; }
-  .who b { color:var(--ok); }
-  .head-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-  .who-mono { font-family:ui-monospace,Consolas,monospace; font-size:11px; color:#6a7299; }
-  a.link { color:#c7b6ff; }
+  :root{--bg:#0f1220;--panel:#171a2b;--card:#1d2135;--line:#2b3152;--fg:#e9ebf5;--mut:#9aa3c4;--acc:#7e52f4;--green:#2fd48a;--red:#ff5d5d;--amber:#ffb020;}
+  *{box-sizing:border-box;}
+  body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);}
+  .topbar{display:flex;align-items:center;gap:14px;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;}
+  .brand{font-weight:700;font-size:16px;} .brand span{color:var(--mut);font-weight:500;font-size:12px;margin-left:6px;}
+  .spacer{flex:1;}
+  .status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:5px 11px;}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 rgba(47,212,138,.5);}
+  .dot.live{background:var(--green);animation:pulse 2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,212,138,.5);}70%{box-shadow:0 0 0 7px rgba(47,212,138,0);}100%{box-shadow:0 0 0 0 rgba(47,212,138,0);}}
+  .btn{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:8px 13px;font-weight:600;cursor:pointer;font-size:13px;}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--fg);}
+  .btn:hover{filter:brightness(1.08);}
+  .bell{position:relative;background:transparent;border:1px solid var(--line);border-radius:10px;width:42px;height:38px;font-size:18px;cursor:pointer;color:var(--fg);}
+  .bell .badge{position:absolute;top:-7px;right:-7px;background:var(--red);color:#fff;border-radius:999px;min-width:19px;height:19px;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 5px;}
+  .layout{display:grid;grid-template-columns:270px 1fr;gap:16px;padding:16px;max-width:1150px;margin:0 auto;}
+  @media(max-width:820px){.layout{grid-template-columns:1fr;}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;}
+  .panel h3{margin:0 0 12px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);}
+  .glabel{font-size:11px;color:var(--mut);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.5px;}
+  .persona{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;cursor:pointer;background:#151931;}
+  .persona:hover{border-color:var(--acc);} .persona.active{border-color:var(--acc);background:rgba(126,82,244,.14);}
+  .av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+  .r-super{background:#e0518a;} .r-admin{background:#7e52f4;} .r-emp{background:#2f8fd4;}
+  .persona .n{font-weight:600;font-size:13px;} .persona .r{font-size:11px;color:var(--mut);}
+  .userhead{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
+  .userhead .big{width:52px;height:52px;font-size:18px;}
+  .userhead .nm{font-size:18px;font-weight:700;} .userhead .rl{color:var(--mut);font-size:13px;}
+  .sub-mono{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#6b7398;margin-top:2px;}
+  .actions{display:flex;flex-direction:column;gap:9px;margin-top:6px;}
+  .act{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:#151931;}
+  .act .l{font-weight:600;font-size:13px;}
+  .result{margin-top:14px;font-size:13px;color:var(--mut);min-height:20px;}
+  .result b{color:var(--green);}
+  /* bell dropdown */
+  .drop{position:absolute;top:56px;right:20px;width:380px;max-width:92vw;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.5);z-index:30;display:none;overflow:hidden;}
+  .drop.open{display:block;}
+  .drop .dh{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);}
+  .drop .dh b{font-size:14px;} .drop .dh a{color:var(--acc);font-size:12px;cursor:pointer;}
+  .nlist{max-height:60vh;overflow-y:auto;list-style:none;margin:0;padding:8px;}
+  .nlist li{border-radius:10px;padding:11px 12px;margin-bottom:6px;background:var(--card);border:1px solid transparent;display:flex;gap:10px;}
+  .nlist li.unread{border-color:var(--line);background:#1b2140;}
+  .nlist .udot{width:8px;height:8px;border-radius:50%;background:var(--acc);margin-top:6px;flex-shrink:0;visibility:hidden;}
+  .nlist li.unread .udot{visibility:visible;}
+  .nlist .t{font-weight:600;font-size:13px;} .nlist .m{color:var(--mut);font-size:12.5px;margin-top:1px;} .nlist .d{color:#6b7398;font-size:11px;margin-top:5px;}
+  .nempty{color:var(--mut);text-align:center;padding:26px;font-size:13px;}
+  .hint{font-size:12px;color:var(--mut);padding:0 20px 16px;max-width:1150px;margin:0 auto;}
+  .hint code{background:#151931;padding:1px 5px;border-radius:4px;}
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <h1>HRMS x Novu - Notification Simulator <span class="pill">tenant-isolated</span></h1>
-    <div class="sub">Fire real HRMS events -> they fan out to the right people. Switch persona to see each inbox. Emails: <a class="link" href="http://localhost:8025" target="_blank">Mailpit</a> - Push: <a class="link" href="/push" target="_blank">/push</a></div>
-  </div>
-  <div class="sub" id="status">Loading...</div>
-</header>
+<div class="topbar">
+  <div class="brand">HRMS <span>Notifications POC</span></div>
+  <div class="spacer"></div>
+  <button class="btn ghost" id="alerts">Enable browser alerts</button>
+  <div class="status"><span class="dot" id="dot"></span><span id="stxt">Offline</span></div>
+  <button class="bell" id="bell">&#128276;<span class="badge" id="badge">0</span></button>
+</div>
 
-<div class="grid">
-  <!-- LEFT: personas -->
-  <div class="card">
-    <h3>View inbox as</h3>
+<div class="drop" id="drop">
+  <div class="dh"><b>Notifications</b><a id="markall">Mark all read</a></div>
+  <ul class="nlist" id="nlist"></ul>
+  <div class="nempty" id="nempty">No notifications yet.</div>
+</div>
+
+<div class="layout">
+  <div class="panel">
+    <h3>Sign in as</h3>
     <div id="personas"></div>
   </div>
-
-  <!-- CENTER: selected inbox -->
-  <div class="card">
-    <div class="head-row">
+  <div class="panel">
+    <div class="userhead">
+      <div class="av big" id="uav">?</div>
       <div>
-        <div id="who-name" style="font-weight:600">Select a person -&gt;</div>
-        <div class="who-mono" id="who-sub"></div>
+        <div class="nm" id="unm">Pick a user to sign in</div>
+        <div class="rl" id="url"></div>
+        <div class="sub-mono" id="usub"></div>
       </div>
-      <div class="sub">unread <b id="unread">0</b></div>
     </div>
-    <ul id="feed" class="feed"></ul>
-    <div id="empty" class="empty">Pick a person on the left to open their in-app inbox.</div>
-  </div>
-
-  <!-- RIGHT: HRMS events -->
-  <div class="card">
-    <h3>Trigger HRMS events</h3>
-    <div id="events"></div>
-    <div class="who" id="who"></div>
+    <h3 style="margin-top:18px">Actions you can perform</h3>
+    <div class="actions" id="actions"><div class="result">Sign in as someone on the left.</div></div>
+    <div class="result" id="result"></div>
   </div>
 </div>
 
+<div class="hint">
+  Real-time demo: open this page in <b>two tabs</b> - sign in as an <b>Employee</b> in one and the <b>Tenant Admin</b> in the other.
+  Do an action in one tab; the other tab's <b>&#128276; bell</b> updates instantly and a browser alert pops (the <span id="livehint">status turns green</span> when the socket is connected).
+  Same email in two tenants stays isolated. Emails: <code>localhost:8025</code>.
+</div>
+
 <script>
-let current = null;      // {subscriberId, session, token}
-let personas = [], events = [];
-const $ = (id) => document.getElementById(id);
-const setStatus = (m) => $("status").textContent = m;
-const initials = (n) => n.split(/[ (]/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
+const roleClass = (r)=> r==="Superadmin"?"r-super":(r==="Tenant Admin"?"r-admin":"r-emp");
+const initials = (n)=> n.replace(/\(.*\)/,"").trim().split(/\s+/).slice(0,1).map(x=>x[0]).join("").toUpperCase();
+const $ = (id)=>document.getElementById(id);
+let personas=[], current=null, socket=null, notifs=[], health={};
 
-async function boot() {
+async function boot(){
+  health = await (await fetch("/api/demo/health")).json();
   personas = (await (await fetch("/api/demo/personas")).json()).personas;
-  events   = (await (await fetch("/api/demo/events")).json()).events;
-  const h = await (await fetch("/api/demo/health")).json();
-  setStatus(h.bridge_enabled ? ("connected - app " + h.application_identifier) : "bridge not configured");
-  renderPersonas(); renderEvents();
+  renderPersonas();
+  if(!health.bridge_enabled) setStatus(false,"bridge not configured");
 }
+function renderPersonas(){
+  const box=$("personas"); box.innerHTML=""; let t=null;
+  for(const p of personas){
+    if(p.tenant!==t){t=p.tenant;const l=document.createElement("div");l.className="glabel";l.textContent=t==="platform"?"Platform":"Tenant: "+t;box.appendChild(l);}
+    const el=document.createElement("div"); el.className="persona"; el.dataset.id=p.id;
+    el.innerHTML=`<div class="av ${roleClass(p.role)}"></div><div><div class="n"></div><div class="r"></div></div>`;
+    el.querySelector(".av").textContent=initials(p.name);
+    el.querySelector(".n").textContent=p.name; el.querySelector(".r").textContent=p.role;
+    el.onclick=()=>signIn(p.id); box.appendChild(el);
+  }
+}
+function setStatus(live,txt){ $("dot").className="dot"+(live?" live":""); $("stxt").textContent=txt||(live?"Live":"Offline"); }
 
-function renderPersonas() {
-  const box = $("personas"); box.innerHTML = "";
-  let tenant = null;
-  for (const p of personas) {
-    if (p.tenant !== tenant) { tenant = p.tenant; const l = document.createElement("div"); l.className="tenant-label"; l.textContent = tenant==="platform" ? "Platform" : "Tenant: "+tenant; box.appendChild(l); }
-    const el = document.createElement("div");
-    el.className = "persona"; el.dataset.id = p.id;
-    el.innerHTML = `<div class="av"></div><div><div class="n"></div><div class="r"></div></div><div class="badge" style="display:none">0</div>`;
-    el.querySelector(".av").textContent = initials(p.name);
-    el.querySelector(".n").textContent = p.name;
-    el.querySelector(".r").textContent = p.role;
-    el.onclick = () => selectPersona(p.id);
+async function signIn(id){
+  document.querySelectorAll(".persona").forEach(x=>x.classList.toggle("active",x.dataset.id===id));
+  const p=personas.find(x=>x.id===id); current=p;
+  $("uav").textContent=initials(p.name); $("uav").className="av big "+roleClass(p.role);
+  $("unm").textContent=p.name; $("url").textContent=p.role+"  -  tenant: "+p.tenant; $("usub").textContent="subscriberId: "+id;
+  renderActions(p); $("result").textContent="";
+  // open Novu inbox session (HMAC), load feed, connect socket
+  const s=await (await fetch("/api/demo/inbox-session?subscriber="+encodeURIComponent(id))).json();
+  const r=await fetch(`${s.backendUrl}/v1/inbox/session`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({applicationIdentifier:s.applicationIdentifier,subscriber:{subscriberId:s.subscriberId},subscriberHash:s.subscriberHash})});
+  if(!r.ok){setStatus(false,"auth failed");return;}
+  const sj=await r.json(); current.token=(sj.data&&sj.data.token)||sj.token; current.backendUrl=s.backendUrl;
+  await loadFeed(); connectSocket(s.wsUrl||health.ws_url, current.token);
+}
+function renderActions(p){
+  const box=$("actions"); box.innerHTML="";
+  if(!p.actions||!p.actions.length){box.innerHTML='<div class="result">This role has no demo actions.</div>';return;}
+  for(const a of p.actions){
+    const el=document.createElement("div"); el.className="act";
+    el.innerHTML=`<div class="l"></div><button class="btn">Do it</button>`;
+    el.querySelector(".l").textContent=a.label;
+    el.querySelector("button").onclick=()=>doAction(a);
     box.appendChild(el);
   }
 }
-
-function renderEvents() {
-  const box = $("events"); box.innerHTML = "";
-  for (const e of events) {
-    const el = document.createElement("div");
-    el.className = "evt";
-    el.innerHTML = `<div class="l"></div><div class="f"></div><button>Trigger</button>`;
-    el.querySelector(".l").textContent = e.label;
-    el.querySelector(".f").textContent = e.flow + "  ->  " + e.recipient_names.join(", ");
-    el.querySelector("button").onclick = () => fireEvent(e);
-    box.appendChild(el);
+async function doAction(a){
+  $("result").textContent="Sending...";
+  const res=await (await fetch("/api/demo/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:a.key,actor:current.id})})).json();
+  const names=(res.delivered||[]).map(d=>d.name).join(", ")||"(no recipients)";
+  $("result").innerHTML=`Notified: <b>${names}</b>`;
+}
+async function loadFeed(){
+  if(!current) return;
+  const r=await fetch(`${current.backendUrl}/v1/inbox/notifications?limit=30`,{headers:{Authorization:"Bearer "+current.token}});
+  if(!r.ok) return; const data=(await r.json()).data||[];
+  notifs=data.map(n=>({id:n.id,title:n.subject||n.payload?.title||"Notification",body:n.body||n.content||n.payload?.message||"",ts:n.createdAt||Date.now(),read:!!(n.isRead||n.read)}));
+  renderBell();
+}
+function renderBell(){
+  const unread=notifs.filter(n=>!n.read).length;
+  const b=$("badge"); b.style.display=unread?"flex":"none"; b.textContent=unread>99?"99+":unread;
+  const list=$("nlist"); list.innerHTML=""; $("nempty").style.display=notifs.length?"none":"block";
+  for(const n of notifs){
+    const li=document.createElement("li"); if(!n.read) li.classList.add("unread");
+    li.innerHTML=`<div class="udot"></div><div style="flex:1"><div class="t"></div><div class="m"></div><div class="d"></div></div>`;
+    li.querySelector(".t").textContent=n.title; li.querySelector(".m").textContent=n.body;
+    li.querySelector(".d").textContent=new Date(n.ts).toLocaleString();
+    list.appendChild(li);
   }
 }
-
-function markActive(id) {
-  document.querySelectorAll(".persona").forEach(x => x.classList.toggle("active", x.dataset.id === id));
-}
-
-async function selectPersona(id) {
-  markActive(id);
-  const p = personas.find(x => x.id === id);
-  $("who-name").textContent = p.name + "  -  " + p.role;
-  $("who-sub").textContent = id;
-  setStatus("Opening inbox for " + p.name + "...");
-  const s = await (await fetch("/api/demo/inbox-session?subscriber=" + encodeURIComponent(id))).json();
-  if (s.detail) { setStatus("session error: " + s.detail); return; }
-  const r = await fetch(`${s.backendUrl}/v1/inbox/session`, {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ applicationIdentifier: s.applicationIdentifier, subscriber:{ subscriberId: s.subscriberId }, subscriberHash: s.subscriberHash })
+function connectSocket(wsUrl,token){
+  if(socket){try{socket.disconnect();}catch(e){}}
+  setStatus(false,"connecting...");
+  socket=io(wsUrl,{transports:["websocket"],auth:{token},reconnection:true});
+  socket.on("connect",()=>setStatus(true,"Live"));
+  socket.on("disconnect",()=>setStatus(false,"Offline"));
+  socket.on("connect_error",()=>setStatus(false,"Offline"));
+  socket.on("notification_received",(d)=>{
+    const m=(d&&d.message)||{}; const title=m.subject||m.payload?.title||"New notification"; const body=m.content||m.body||m.payload?.message||"";
+    notifs.unshift({id:m._id||Math.random(),title,body,ts:m.createdAt||Date.now(),read:false});
+    renderBell(); popNative(title,body);
   });
-  if (!r.ok) { setStatus("Novu session rejected: " + (await r.text())); return; }
-  const sj = await r.json();
-  current = { subscriberId: id, backendUrl: s.backendUrl, token: (sj.data && sj.data.token) || sj.token };
-  setStatus("connected");
-  await loadFeed();
+  socket.on("unread_count_changed",()=>{}); // badge already tracked from feed/live events
 }
-
-async function loadFeed() {
-  if (!current) return;
-  const r = await fetch(`${current.backendUrl}/v1/inbox/notifications?limit=25`, { headers:{ Authorization:"Bearer "+current.token } });
-  if (!r.ok) return;
-  const data = (await r.json()).data || [];
-  const unread = data.filter(n => !(n.isRead||n.read)).length;
-  $("unread").textContent = unread;
-  const badge = document.querySelector(`.persona[data-id="${current.subscriberId}"] .badge`);
-  if (badge) { badge.style.display = unread ? "flex" : "none"; badge.textContent = unread; }
-  const feed = $("feed"); feed.innerHTML = "";
-  $("empty").style.display = data.length ? "none" : "block";
-  $("empty").textContent = "No notifications for this person yet.";
-  for (const n of data) {
-    const li = document.createElement("li");
-    if (!(n.isRead||n.read)) li.classList.add("unread");
-    li.innerHTML = `<div class="t"></div><div class="m"></div><div class="d"></div>`;
-    li.querySelector(".t").textContent = n.subject || n.payload?.title || "(no title)";
-    li.querySelector(".m").textContent = n.body || n.content || n.payload?.message || "";
-    li.querySelector(".d").textContent = new Date(n.createdAt || Date.now()).toLocaleString();
-    feed.appendChild(li);
+function popNative(title,body){
+  if(window.Notification && Notification.permission==="granted"){
+    try{ new Notification("HRMS: "+title,{body,icon:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%237e52f4'/%3E%3C/svg%3E"}); }catch(e){}
   }
 }
-
-async function fireEvent(e) {
-  $("who").innerHTML = "Triggering <b>" + e.label + "</b>...";
-  const res = await (await fetch("/api/demo/event", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ key: e.key }) })).json();
-  const names = (res.delivered||[]).map(d => d.name + (d.ok?"":" (fail)")).join(", ");
-  $("who").innerHTML = `<b>${e.label}</b> delivered to: ${names}`;
-  // if the person currently open is a recipient, refresh their feed
-  if (current && e.recipients.includes(current.subscriberId)) setTimeout(loadFeed, 1500);
-}
-
-// keep the open inbox fresh
-setInterval(() => { if (current) loadFeed(); }, 4000);
+$("bell").onclick=()=>$("drop").classList.toggle("open");
+$("markall").onclick=async()=>{
+  if(!current) return;
+  await fetch(`${current.backendUrl}/v1/inbox/notifications/read`,{method:"POST",headers:{Authorization:"Bearer "+current.token,"Content-Type":"application/json"},body:"{}"});
+  notifs=notifs.map(n=>({...n,read:true})); renderBell();
+};
+$("alerts").onclick=async()=>{
+  if(!window.Notification){$("alerts").textContent="not supported";return;}
+  const perm=await Notification.requestPermission();
+  $("alerts").textContent = perm==="granted" ? "Alerts on" : "Alerts blocked";
+};
+document.addEventListener("click",(e)=>{ if(!$("drop").contains(e.target) && e.target!==$("bell") && !$("bell").contains(e.target)) $("drop").classList.remove("open"); });
 boot();
 </script>
 </body>
