@@ -3,149 +3,180 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HRMS × Novu — In-App Inbox (tenant-isolated)</title>
+<title>HRMS x Novu - Notification Simulator</title>
 <style>
-  :root { --bg:#0f1220; --card:#191d31; --line:#2a3050; --fg:#e7e9f3; --mut:#9aa3c4; --acc:#7e52f4; --ok:#39d98a; }
+  :root { --bg:#0f1220; --card:#191d31; --line:#2a3050; --fg:#e7e9f3; --mut:#9aa3c4; --acc:#7e52f4; --ok:#39d98a; --warn:#ffb020; }
   * { box-sizing:border-box; }
   body { margin:0; font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--fg); }
-  header { padding:20px 24px; border-bottom:1px solid var(--line); }
-  header h1 { margin:0; font-size:18px; } header p { margin:4px 0 0; color:var(--mut); }
-  .wrap { max-width:900px; margin:0 auto; padding:24px; }
-  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-bottom:16px; }
-  button { background:var(--acc); color:#fff; border:0; border-radius:8px; padding:9px 14px; font-weight:600; cursor:pointer; }
-  button.ghost { background:transparent; border:1px solid var(--line); color:var(--fg); }
-  button.tenant { background:transparent; border:1px solid var(--line); color:var(--mut); }
-  button.tenant.active { border-color:var(--acc); color:var(--fg); background:rgba(126,82,244,.12); }
-  input { background:#0d1020; border:1px solid var(--line); color:var(--fg); border-radius:8px; padding:9px 11px; min-width:280px; }
-  label { color:var(--mut); font-size:12px; display:block; margin-bottom:4px; }
-  .mono { font-family:ui-monospace,Consolas,monospace; font-size:12px; color:var(--mut); word-break:break-all; }
+  header { padding:16px 22px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  header h1 { margin:0; font-size:17px; } header .sub { color:var(--mut); font-size:12px; }
   .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; background:rgba(126,82,244,.15); color:#c7b6ff; }
+  .grid { display:grid; grid-template-columns:250px 1fr 340px; gap:14px; padding:14px; align-items:start; }
+  @media (max-width:1100px){ .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .card h3 { margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--mut); }
+  .tenant-label { font-size:11px; color:var(--mut); margin:10px 0 4px; text-transform:uppercase; letter-spacing:.5px; }
+  .persona { display:flex; align-items:center; gap:9px; padding:8px 9px; border:1px solid var(--line); border-radius:9px; margin-bottom:6px; cursor:pointer; background:#12162a; }
+  .persona:hover { border-color:var(--acc); }
+  .persona.active { border-color:var(--acc); background:rgba(126,82,244,.12); }
+  .persona .av { width:26px; height:26px; border-radius:50%; background:var(--acc); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+  .persona .n { font-weight:600; font-size:13px; } .persona .r { font-size:11px; color:var(--mut); }
+  .badge { margin-left:auto; background:var(--acc); color:#fff; border-radius:999px; min-width:20px; height:20px; padding:0 6px; font-size:11px; display:flex; align-items:center; justify-content:center; }
+  .evt { border:1px solid var(--line); border-radius:9px; padding:10px; margin-bottom:8px; background:#12162a; }
+  .evt .l { font-weight:600; font-size:13px; } .evt .f { font-size:11px; color:var(--mut); margin:2px 0 8px; }
+  .evt button { width:100%; background:var(--acc); color:#fff; border:0; border-radius:7px; padding:7px; font-weight:600; cursor:pointer; }
+  .evt button:hover { filter:brightness(1.1); }
   .feed { list-style:none; margin:0; padding:0; }
-  .feed li { border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; background:#12162a; }
+  .feed li { border:1px solid var(--line); border-radius:10px; padding:11px 13px; margin-bottom:9px; background:#12162a; }
   .feed li.unread { border-left:3px solid var(--acc); }
-  .feed .t { font-weight:600; } .feed .m { color:var(--mut); margin-top:2px; } .feed .d { color:#6a7299; font-size:12px; margin-top:6px; }
-  .empty { color:var(--mut); text-align:center; padding:24px; }
-  .status { font-size:12px; color:var(--mut); } .status.err { color:#ff6b6b; } .status.ok { color:var(--ok); }
+  .feed .t { font-weight:600; } .feed .m { color:var(--mut); margin-top:2px; font-size:13px; } .feed .d { color:#6a7299; font-size:11px; margin-top:6px; }
+  .empty { color:var(--mut); text-align:center; padding:26px; font-size:13px; }
+  .who { font-size:12px; min-height:18px; }
+  .who b { color:var(--ok); }
+  .head-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .who-mono { font-family:ui-monospace,Consolas,monospace; font-size:11px; color:#6a7299; }
+  a.link { color:#c7b6ff; }
 </style>
 </head>
 <body>
 <header>
-  <h1>HRMS × Novu — In-App Inbox <span class="pill">tenant-isolated via HMAC</span></h1>
-  <p>Same user id, two tenants → two separate feeds. The browser never sees the secret key; it only gets an HMAC the backend signed.</p>
+  <div>
+    <h1>HRMS x Novu - Notification Simulator <span class="pill">tenant-isolated</span></h1>
+    <div class="sub">Fire real HRMS events -> they fan out to the right people. Switch persona to see each inbox. Emails: <a class="link" href="http://localhost:8025" target="_blank">Mailpit</a> - Push: <a class="link" href="/push" target="_blank">/push</a></div>
+  </div>
+  <div class="sub" id="status">Loading...</div>
 </header>
 
-<div class="wrap">
+<div class="grid">
+  <!-- LEFT: personas -->
   <div class="card">
-    <div class="row" style="margin-bottom:12px">
-      <div>
-        <label>Tenant</label>
-        <button class="tenant active" data-tenant="acme">acme</button>
-        <button class="tenant" data-tenant="globex">globex</button>
-      </div>
-      <div style="flex:1">
-        <label>Identity user id (same across tenants — proves isolation)</label>
-        <input id="user" value="11111111-1111-1111-1111-111111111111" />
-      </div>
-    </div>
-    <div class="row">
-      <button id="open">Open Inbox</button>
-      <button id="send" class="ghost">Send test notification</button>
-      <span id="status" class="status">Idle.</span>
-    </div>
-    <div style="margin-top:12px">
-      <div class="mono">subscriberId: <span id="sid">—</span></div>
-      <div class="mono">subscriberHash: <span id="shash">—</span></div>
-    </div>
+    <h3>View inbox as</h3>
+    <div id="personas"></div>
   </div>
 
+  <!-- CENTER: selected inbox -->
   <div class="card">
-    <div class="row" style="justify-content:space-between">
-      <strong>Feed</strong>
-      <span class="status">unread: <b id="unread">0</b></span>
+    <div class="head-row">
+      <div>
+        <div id="who-name" style="font-weight:600">Select a person -&gt;</div>
+        <div class="who-mono" id="who-sub"></div>
+      </div>
+      <div class="sub">unread <b id="unread">0</b></div>
     </div>
     <ul id="feed" class="feed"></ul>
-    <div id="empty" class="empty">Open the inbox to load this subscriber's feed.</div>
+    <div id="empty" class="empty">Pick a person on the left to open their in-app inbox.</div>
+  </div>
+
+  <!-- RIGHT: HRMS events -->
+  <div class="card">
+    <h3>Trigger HRMS events</h3>
+    <div id="events"></div>
+    <div class="who" id="who"></div>
   </div>
 </div>
 
 <script>
-const DEMO = "";                       // same origin (:4200)
-let tenant = "acme";
-let session = null;                    // { applicationIdentifier, subscriberId, subscriberHash, backendUrl }
-let token = null;                      // Novu subscriber widget JWT
-
+let current = null;      // {subscriberId, session, token}
+let personas = [], events = [];
 const $ = (id) => document.getElementById(id);
-const setStatus = (msg, cls="") => { const s=$("status"); s.textContent=msg; s.className="status "+cls; };
+const setStatus = (m) => $("status").textContent = m;
+const initials = (n) => n.split(/[ (]/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
 
-document.querySelectorAll(".tenant").forEach(b => b.onclick = () => {
-  document.querySelectorAll(".tenant").forEach(x => x.classList.remove("active"));
-  b.classList.add("active"); tenant = b.dataset.tenant; setStatus("Tenant → "+tenant);
-});
+async function boot() {
+  personas = (await (await fetch("/api/demo/personas")).json()).personas;
+  events   = (await (await fetch("/api/demo/events")).json()).events;
+  const h = await (await fetch("/api/demo/health")).json();
+  setStatus(h.bridge_enabled ? ("connected - app " + h.application_identifier) : "bridge not configured");
+  renderPersonas(); renderEvents();
+}
 
-async function openInbox() {
-  const user = $("user").value.trim();
-  setStatus("Minting HMAC session…");
-  // 1) Backend mints the (public) trio for the logged-in user of this tenant.
-  const s = await fetch(`${DEMO}/api/demo/inbox-session?tenant=${encodeURIComponent(tenant)}&user=${encodeURIComponent(user)}`);
-  if (!s.ok) { setStatus("session mint failed: "+(await s.text()), "err"); return; }
-  session = await s.json();
-  $("sid").textContent = session.subscriberId;
-  $("shash").textContent = session.subscriberHash.slice(0,24)+"…";
+function renderPersonas() {
+  const box = $("personas"); box.innerHTML = "";
+  let tenant = null;
+  for (const p of personas) {
+    if (p.tenant !== tenant) { tenant = p.tenant; const l = document.createElement("div"); l.className="tenant-label"; l.textContent = tenant==="platform" ? "Platform" : "Tenant: "+tenant; box.appendChild(l); }
+    const el = document.createElement("div");
+    el.className = "persona"; el.dataset.id = p.id;
+    el.innerHTML = `<div class="av"></div><div><div class="n"></div><div class="r"></div></div><div class="badge" style="display:none">0</div>`;
+    el.querySelector(".av").textContent = initials(p.name);
+    el.querySelector(".n").textContent = p.name;
+    el.querySelector(".r").textContent = p.role;
+    el.onclick = () => selectPersona(p.id);
+    box.appendChild(el);
+  }
+}
 
-  // 2) Browser opens the Novu Inbox session directly (HMAC proves identity).
-  const r = await fetch(`${session.backendUrl}/v1/inbox/session`, {
+function renderEvents() {
+  const box = $("events"); box.innerHTML = "";
+  for (const e of events) {
+    const el = document.createElement("div");
+    el.className = "evt";
+    el.innerHTML = `<div class="l"></div><div class="f"></div><button>Trigger</button>`;
+    el.querySelector(".l").textContent = e.label;
+    el.querySelector(".f").textContent = e.flow + "  ->  " + e.recipient_names.join(", ");
+    el.querySelector("button").onclick = () => fireEvent(e);
+    box.appendChild(el);
+  }
+}
+
+function markActive(id) {
+  document.querySelectorAll(".persona").forEach(x => x.classList.toggle("active", x.dataset.id === id));
+}
+
+async function selectPersona(id) {
+  markActive(id);
+  const p = personas.find(x => x.id === id);
+  $("who-name").textContent = p.name + "  -  " + p.role;
+  $("who-sub").textContent = id;
+  setStatus("Opening inbox for " + p.name + "...");
+  const s = await (await fetch("/api/demo/inbox-session?subscriber=" + encodeURIComponent(id))).json();
+  if (s.detail) { setStatus("session error: " + s.detail); return; }
+  const r = await fetch(`${s.backendUrl}/v1/inbox/session`, {
     method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      applicationIdentifier: session.applicationIdentifier,
-      subscriber: { subscriberId: session.subscriberId },
-      subscriberHash: session.subscriberHash,
-    })
+    body: JSON.stringify({ applicationIdentifier: s.applicationIdentifier, subscriber:{ subscriberId: s.subscriberId }, subscriberHash: s.subscriberHash })
   });
-  if (!r.ok) { setStatus("Novu session rejected: "+(await r.text()), "err"); return; }
-  token = (await r.json()).token;
-  setStatus("Session OK for "+tenant, "ok");
+  if (!r.ok) { setStatus("Novu session rejected: " + (await r.text())); return; }
+  const sj = await r.json();
+  current = { subscriberId: id, backendUrl: s.backendUrl, token: (sj.data && sj.data.token) || sj.token };
+  setStatus("connected");
   await loadFeed();
 }
 
 async function loadFeed() {
-  if (!token) return;
-  const r = await fetch(`${session.backendUrl}/v1/inbox/notifications?limit=20`, {
-    headers: { "Authorization": "Bearer "+token }
-  });
-  const feed = $("feed"); feed.innerHTML="";
-  if (!r.ok) { setStatus("feed load failed", "err"); return; }
+  if (!current) return;
+  const r = await fetch(`${current.backendUrl}/v1/inbox/notifications?limit=25`, { headers:{ Authorization:"Bearer "+current.token } });
+  if (!r.ok) return;
   const data = (await r.json()).data || [];
-  $("unread").textContent = data.filter(n => !n.isRead && !n.read).length;
+  const unread = data.filter(n => !(n.isRead||n.read)).length;
+  $("unread").textContent = unread;
+  const badge = document.querySelector(`.persona[data-id="${current.subscriberId}"] .badge`);
+  if (badge) { badge.style.display = unread ? "flex" : "none"; badge.textContent = unread; }
+  const feed = $("feed"); feed.innerHTML = "";
   $("empty").style.display = data.length ? "none" : "block";
+  $("empty").textContent = "No notifications for this person yet.";
   for (const n of data) {
     const li = document.createElement("li");
-    if (!(n.isRead || n.read)) li.classList.add("unread");
-    const subject = n.subject || n.payload?.title || "(no title)";
-    const bodyTxt = n.body || n.content || n.payload?.message || "";
-    const when = new Date(n.createdAt || n.createdAtISO || Date.now()).toLocaleString();
+    if (!(n.isRead||n.read)) li.classList.add("unread");
     li.innerHTML = `<div class="t"></div><div class="m"></div><div class="d"></div>`;
-    li.querySelector(".t").textContent = subject;
-    li.querySelector(".m").textContent = bodyTxt;
-    li.querySelector(".d").textContent = when;
+    li.querySelector(".t").textContent = n.subject || n.payload?.title || "(no title)";
+    li.querySelector(".m").textContent = n.body || n.content || n.payload?.message || "";
+    li.querySelector(".d").textContent = new Date(n.createdAt || Date.now()).toLocaleString();
     feed.appendChild(li);
   }
 }
 
-async function sendTest() {
-  const user = $("user").value.trim();
-  setStatus("Triggering workflow…");
-  const r = await fetch(`${DEMO}/api/demo/trigger`, {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ tenant, user, email: `user@${tenant}.example.com`, name: "Demo User" })
-  });
-  const j = await r.json();
-  setStatus(j.triggered ? "Triggered — refreshing in 1.5s…" : "Trigger failed (workflow created & active?)", j.triggered?"ok":"err");
-  if (j.triggered) setTimeout(loadFeed, 1500);
+async function fireEvent(e) {
+  $("who").innerHTML = "Triggering <b>" + e.label + "</b>...";
+  const res = await (await fetch("/api/demo/event", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ key: e.key }) })).json();
+  const names = (res.delivered||[]).map(d => d.name + (d.ok?"":" (fail)")).join(", ");
+  $("who").innerHTML = `<b>${e.label}</b> delivered to: ${names}`;
+  // if the person currently open is a recipient, refresh their feed
+  if (current && e.recipients.includes(current.subscriberId)) setTimeout(loadFeed, 1500);
 }
 
-$("open").onclick = () => openInbox().catch(e => setStatus(e.message, "err"));
-$("send").onclick = () => sendTest().catch(e => setStatus(e.message, "err"));
+// keep the open inbox fresh
+setInterval(() => { if (current) loadFeed(); }, 4000);
+boot();
 </script>
 </body>
 </html>

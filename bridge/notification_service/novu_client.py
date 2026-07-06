@@ -34,6 +34,7 @@ _CATEGORY_WORKFLOW = {
     "timesheet": "hrms-timesheet",
     "task": "hrms-task",
     "approval": "hrms-approval",
+    "announcement": "hrms-announcement",
 }
 _DEFAULT_WORKFLOW = "hrms-generic"
 
