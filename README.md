@@ -72,6 +72,8 @@ notification-service behind a `NOTIFY_ENGINE=legacy|dual|novu` flag; nothing els
 ## Status
 
 - [x] **Phase 0** — self-hosted Novu stack + Mailpit, tailored ports/names, secrets, run docs
+      — **verified up on Docker 29.4.3**: all 7 containers healthy; `:3010/v1/health-check`
+      reports `db/workflowQueue/apiVersion 3.17.0` all `up`; dashboard :4000 and Mailpit :8025 return 200.
 - [ ] Phase 1 — bridge client in notification-service (`NOTIFY_ENGINE` flag)
 - [ ] Phase 2 — email leg for business events + digest + per-tenant SMTP
 - [ ] Phase 3 — web push (FCM)
