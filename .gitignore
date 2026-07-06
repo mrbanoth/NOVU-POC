@@ -1,0 +1,21 @@
+# Secrets — never commit real env files
+deploy/.env
+**/.env
+!**/.env.example
+
+# Node / Python bridge artifacts
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local data / logs
+*.log
+data/
