@@ -78,12 +78,16 @@ Every notification with an email step also lands in **Mailpit -> http://localhos
 
 ---
 
-## 6. TEST: push notifications
+## 6. TEST: push notifications (real, no Firebase)
 
-- **Foreground (works now):** with a tab open + alerts enabled, every new notification raises a
-  real **Chrome desktop notification** (Notification API, driven by the live socket). See step 2.
-- **Background (tab closed / mobile):** needs FCM (free Firebase project). Full guide:
-  **[PUSH-FCM.md](PUSH-FCM.md)**. All the code is in place; you add the Firebase creds.
+The Next.js app (`hrms-web`, port 3005) ships **our own Web Push (VAPID)** — real browser
+notifications with **no Firebase**, working even when the tab is closed.
+
+1. Sign in at http://localhost:3005, click **"Enable alerts"**, and **Allow** the prompt.
+2. In another tab / as another user, trigger a notification to you (e.g. Employee submits a
+   timesheet → Tenant Admin).
+3. A **real desktop notification pops** — switch away or close the tab, it still arrives; clicking
+   it focuses the app. Design + details: **[PUSH.md](PUSH.md)**.
 
 ---
 

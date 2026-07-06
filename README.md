@@ -103,8 +103,9 @@ Open **http://localhost:3005** and sign in with a sample account (shown on the l
 
 **Superadmin** creates tenants → **Tenant Admin** creates employees → an **Employee** submits a
 timesheet and the Admin's **🔔 bell** lights up in real time (green **"Live"** socket status) with a
-Chrome notification. Emails land in **Mailpit** (http://localhost:8025). Cross-tenant = isolated.
-Full walkthrough: **[docs/TESTING.md](docs/TESTING.md)**. Background push: **[docs/PUSH-FCM.md](docs/PUSH-FCM.md)**.
+real **Chrome push notification** (our own Web Push / VAPID — **no Firebase**, works with the tab
+closed). Emails land in **Mailpit** (http://localhost:8025). Cross-tenant = isolated.
+Full walkthrough: **[docs/TESTING.md](docs/TESTING.md)**. Push design: **[docs/PUSH.md](docs/PUSH.md)**.
 
 ## Ports
 
@@ -132,11 +133,11 @@ another project: **[docs/REUSE.md](docs/REUSE.md)**. (A lighter no-build demo al
 - [x] **Real-time socket** — live `notification_received` over Novu WS verified with a real
       socket.io client; green/red status light; instant bell + native Chrome notification.
 - [x] **Email** — business-event emails land in Mailpit (the gap HRMS has today).
-- [x] **Push** — Tier 1 foreground Chrome notifications working now; Tier 2 background via FCM (guide).
+- [x] **Push** — real browser push via our own **Web Push (VAPID), no Firebase**; works tab-closed.
 - [x] **Resilience** — best-effort bridge; Novu down ⇒ caller still succeeds.
 
-Read next: **[docs/TESTING.md](docs/TESTING.md)** (manual tests) · **[docs/PUSH-FCM.md](docs/PUSH-FCM.md)**
-(real background push) · **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** · **[docs/SECURITY.md](docs/SECURITY.md)** · **[docs/REUSE.md](docs/REUSE.md)**.
+Read next: **[docs/TESTING.md](docs/TESTING.md)** (manual tests) · **[docs/PUSH.md](docs/PUSH.md)**
+(push design) · **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** · **[docs/SECURITY.md](docs/SECURITY.md)** · **[docs/REUSE.md](docs/REUSE.md)**.
 
 Reference (read-only): the upstream Novu clone lives at `..\Novu\novu` and is used only to
 source the official compose file and read code — it is never built from source.
