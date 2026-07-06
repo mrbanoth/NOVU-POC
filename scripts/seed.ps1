@@ -21,9 +21,9 @@ foreach ($line in Get-Content $envf) {
   if (-not $t -or $t.StartsWith('#') -or -not $t.Contains('=')) { continue }
   $k,$v = $t.Split('=',2); $envMap[$k.Trim()] = $v.Trim()
 }
-$secret = $envMap['NOVU_SECRET_KEY']
+$secret = $envMap['NOVU_API_KEY']
 $api    = 'http://localhost:3010'   # host-facing API port
-if (-not $secret) { throw "NOVU_SECRET_KEY missing in deploy/.env — create org in the dashboard, copy the Secret Key." }
+if (-not $secret) { throw "NOVU_API_KEY missing in deploy/.env — create the org in the dashboard, copy the Secret Key (sk_...) into NOVU_API_KEY." }
 $headers = @{ Authorization = "ApiKey $secret"; 'Content-Type' = 'application/json' }
 
 function Try-Api($method, $path, $body) {

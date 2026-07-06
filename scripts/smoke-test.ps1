@@ -11,7 +11,7 @@ foreach ($line in Get-Content $envf) {
   $t = $line.Trim(); if (-not $t -or $t.StartsWith('#') -or -not $t.Contains('=')) { continue }
   $k,$v = $t.Split('=',2); $envMap[$k.Trim()] = $v.Trim()
 }
-$secret = $envMap['NOVU_SECRET_KEY']
+$secret = $envMap['NOVU_API_KEY']
 
 function Ok($m){Write-Host "  [OK]  $m" -ForegroundColor Green}
 function Bad($m){Write-Host "  [ERR] $m" -ForegroundColor Red}
@@ -26,7 +26,7 @@ if ($secret) {
   $hash = ($hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes($sub)) | ForEach-Object { $_.ToString('x2') }) -join ''
   Ok "subscriberHash($sub) = $($hash.Substring(0,24))..."
   Write-Host "        (bridge/novu_inbox.subscriber_hash must produce the identical value)" -ForegroundColor DarkGray
-} else { Bad "NOVU_SECRET_KEY missing" }
+} else { Bad "NOVU_API_KEY missing (paste the dashboard Secret Key into deploy/.env)" }
 
 Write-Host "== Trigger round-trip (hrms-generic) ==" -ForegroundColor Cyan
 if ($secret) {

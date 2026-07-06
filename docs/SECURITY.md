@@ -43,7 +43,7 @@ subscriberHash = HMAC_SHA256( decrypt(environmentApiKey), subscriberId ) → hex
 
 | Secret | Purpose | Handling |
 |---|---|---|
-| `NOVU_SECRET_KEY` / environment API key | trigger auth + HMAC signing | notification-service env only; never in frontend, logs, or git |
+| `NOVU_API_KEY` (dashboard environment Secret Key, `sk_...`) | trigger auth + HMAC signing | notification-service env only; never in frontend, logs, or git. Distinct from the container's internal `NOVU_SECRET_KEY` placeholder. |
 | `JWT_SECRET` | Novu-internal token signing | Novu containers only |
 | `STORE_ENCRYPTION_KEY` (32 chars) | encrypts provider credentials at rest | Novu containers only |
 | `MONGO_INITDB_ROOT_PASSWORD` | Mongo auth | Novu network only; port unpublished |
@@ -95,7 +95,7 @@ Repo hygiene: `deploy/.env` is git-ignored; only `deploy/.env.example` (placehol
 - [ ] HMAC enabled on the In-App integration (all shared environments).
 - [ ] Fresh secrets generated; `deploy/.env` not committed; secrets in the platform secret store.
 - [ ] Novu API/Mongo/Redis not publicly exposed; only internal DNS.
-- [ ] `NOVU_SECRET_KEY` present only in notification-service; absent from frontend bundles.
+- [ ] `NOVU_API_KEY` present only in notification-service; absent from frontend bundles.
 - [ ] DSR erase cascade includes subscriber delete.
 - [ ] Two-tenant isolation test passes (same email → two subscribers, no crossover).
 - [ ] Trigger path is best-effort (Novu down ⇒ business action still succeeds).

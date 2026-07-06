@@ -14,8 +14,12 @@ This is the exact, minimal change to apply **after** the team approves. Nothing 
 ```yaml
       NOTIFY_ENGINE: ${NOTIFY_ENGINE:-legacy}          # legacy | dual | novu
       NOVU_API_URL: ${NOVU_API_URL:-http://host.docker.internal:3010}
-      NOVU_SECRET_KEY: ${NOVU_SECRET_KEY:-}            # environment Secret Key from Novu dashboard
+      NOVU_API_KEY: ${NOVU_API_KEY:-}                  # environment Secret Key (sk_...) from the Novu dashboard
+      NOVU_APPLICATION_IDENTIFIER: ${NOVU_APPLICATION_IDENTIFIER:-}   # public env id (for the Inbox)
 ```
+
+> `NOVU_API_KEY` is the dashboard **environment Secret Key**, deliberately named differently from the
+> Novu container's internal `NOVU_SECRET_KEY` (an unrelated placeholder) to avoid confusing the two.
 
 Run the POC with `NOTIFY_ENGINE=dual` so the legacy bell and Novu run side by side.
 

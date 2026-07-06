@@ -25,7 +25,10 @@ class NovuSettings:
 
     # ── Connection ─────────────────────────────────────────────────────────────
     api_url: str = field(default_factory=lambda: os.getenv("NOVU_API_URL", "http://host.docker.internal:3010").rstrip("/"))
-    secret_key: str = field(default_factory=lambda: os.getenv("NOVU_SECRET_KEY", ""))
+    # The ENVIRONMENT SECRET KEY from Dashboard > Settings > API Keys (an `sk_...` value).
+    # NOTE: this is NOT the compose-level `NOVU_SECRET_KEY` container var — that is an unrelated
+    # internal placeholder. The bridge deliberately uses a distinct name to avoid the collision.
+    secret_key: str = field(default_factory=lambda: os.getenv("NOVU_API_KEY", ""))
     # Public environment identifier (safe to expose to the browser) — used by the Inbox.
     application_identifier: str = field(default_factory=lambda: os.getenv("NOVU_APPLICATION_IDENTIFIER", ""))
 

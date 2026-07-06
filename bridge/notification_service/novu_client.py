@@ -20,10 +20,11 @@ Wire-up (see bridge/config.md):
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Optional
 
 import httpx
+
+from .settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -58,11 +59,11 @@ class NovuClient:
         self,
         api_url: Optional[str] = None,
         secret_key: Optional[str] = None,
-        timeout: float = 3.0,
+        timeout: Optional[float] = None,
     ) -> None:
-        self._api_url = (api_url or os.getenv("NOVU_API_URL", "")).rstrip("/")
-        self._secret_key = secret_key or os.getenv("NOVU_SECRET_KEY", "")
-        self._timeout = timeout
+        self._api_url = (api_url or settings.api_url).rstrip("/")
+        self._secret_key = secret_key or settings.secret_key
+        self._timeout = timeout if timeout is not None else settings.timeout_seconds
 
     @property
     def enabled(self) -> bool:

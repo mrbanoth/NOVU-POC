@@ -90,7 +90,7 @@ for `FRONTEND_URL`. The bridge is a small best-effort client added to notificati
 After Phase 0 is up:
 
 1. Open http://localhost:4000 → create admin + org → **Settings → API Keys**.
-2. Put the **Secret Key** in `deploy/.env` as `NOVU_SECRET_KEY=…`, then:
+2. Put the **Secret Key** (`sk_...`) in `deploy/.env` as `NOVU_API_KEY=…`, then:
    ```powershell
    powershell -File scripts/seed.ps1        # writes NOVU_APPLICATION_IDENTIFIER, creates workflows
    ```
