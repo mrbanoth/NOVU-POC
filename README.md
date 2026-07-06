@@ -85,23 +85,43 @@ The HRMS `notification-service` (in its own compose network) calls the Novu API 
 for `FRONTEND_URL`. The bridge is a small best-effort client added to notification-service behind a
 `NOTIFY_ENGINE=legacy|dual|novu` flag; nothing else in HRMS changes.
 
-## Quickstart (3 commands)
+## Quickstart
 
 ```powershell
 cd deploy; docker compose --env-file .env up -d          # 1. start Novu
 cd ..;     powershell -File scripts/configure.ps1        # 2. provision your org (HMAC, SMTP, workflows)
-cd demo/backend; pip install -r requirements.txt; uvicorn app:app --host 0.0.0.0 --port 4200   # 3. demo
+cd hrms-web; npm install; npm run dev                    # 3. run the HRMS app (Next.js, port 3005)
 ```
 
-Open **http://localhost:4200** — an HRMS notification app with **3 roles** (Superadmin, Tenant
-Admin, Employee), a **🔔 bell**, and a **live socket status light (green/red)**. Sign in as an
-Employee, submit a timesheet → the Tenant Admin's bell lights up in real time with a Chrome
-notification. Emails land in **Mailpit** (http://localhost:8025). Cross-tenant = isolated.
-Full walkthrough: **[docs/TESTING.md](docs/TESTING.md)**. Real background push: **[docs/PUSH-FCM.md](docs/PUSH-FCM.md)**.
+Open **http://localhost:3005** and sign in with a sample account (shown on the login screen):
 
-Provisioning: `scripts/configure.ps1` sets up an **existing** org from its Secret Key (reads
-`deploy/.env`); `scripts/bootstrap.ps1` creates + provisions a **brand-new** org headlessly.
-Both idempotent. Reuse in another project: **[docs/REUSE.md](docs/REUSE.md)**.
+| Role | Email | Password |
+|---|---|---|
+| Superadmin | `admin@hrms.com` | `Bsandeep123?` |
+| Tenant Admin | `admin@acme.com` | `Acme123?` |
+| Employee | `eddie@acme.com` | `Emp123?` |
+
+**Superadmin** creates tenants → **Tenant Admin** creates employees → an **Employee** submits a
+timesheet and the Admin's **🔔 bell** lights up in real time (green **"Live"** socket status) with a
+Chrome notification. Emails land in **Mailpit** (http://localhost:8025). Cross-tenant = isolated.
+Full walkthrough: **[docs/TESTING.md](docs/TESTING.md)**. Background push: **[docs/PUSH-FCM.md](docs/PUSH-FCM.md)**.
+
+## Ports
+
+| Port | Service | What it's for |
+|---|---|---|
+| **3005** | **HRMS app** (this POC's Next.js UI) | login + the 3 role dashboards |
+| **4000** | **Novu dashboard/panel** | manage workflows, integrations, subscribers, activity feed |
+| **3010** | Novu API | triggers, HMAC inbox session (the app's server talks to this) |
+| **3011** | Novu WebSocket | real-time notifications → the green/red "Live" light |
+| **8025** | Mailpit UI | view business-event emails |
+| 1025 | Mailpit SMTP | Novu → Mailpit (internal) |
+| 27017 / 6379 | MongoDB / Redis | Novu data + queues (internal, not published) |
+| 3000 | *(the real HRMS frontend — untouched)* | why this POC uses 3005 |
+
+`nginx`/`traefik` are not used here. Provisioning: `scripts/configure.ps1` sets up an **existing**
+org from its Secret Key; `scripts/bootstrap.ps1` creates + provisions a **brand-new** one. Reuse in
+another project: **[docs/REUSE.md](docs/REUSE.md)**. (A lighter no-build demo also exists under `demo/`.)
 
 ## Status — verified working end-to-end
 
