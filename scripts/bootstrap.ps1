@@ -106,7 +106,12 @@ if (-not ($envInts | Where-Object { $_.channel -eq 'push' })) {
 
 Write-Host "== 7. Workflows ==" -ForegroundColor Cyan
 $existing = @()
-try { $wfs = Invoke-RestMethod "$Api/v2/workflows?limit=100" -Headers $bh; $wl = if ($wfs.data){$wfs.data}else{$wfs.workflows}; $existing = $wl | ForEach-Object { $_.workflowId } } catch {}
+try {
+  $wfs = Invoke-RestMethod "$Api/v2/workflows?limit=100" -Headers $bh
+  $wl = $wfs.data.workflows                     # list shape: { data: { workflows: [...] } }
+  if (-not $wl) { $wl = $wfs.workflows }
+  $existing = @($wl | ForEach-Object { $_.workflowId })
+} catch {}
 function Step($t){
   switch ($t) {
     'in_app' { @{ name='In-App'; type='in_app'; controlValues=@{ subject='{{payload.title}}'; body='{{payload.message}}' } } }
