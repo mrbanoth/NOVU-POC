@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { listTenants, createTenant, superadmins } from "@/lib/store";
-import { trigger, notifyMany } from "@/lib/novu";
+import { notify, notifyMany } from "@/lib/notify";
 
 export async function GET() {
   return NextResponse.json({ tenants: listTenants() });
@@ -14,12 +14,10 @@ export async function POST(req) {
     const { tenant, admin } = createTenant({ companyName, adminName, adminEmail, password });
 
     // Notify the newly-created tenant admin (welcome) ...
-    await trigger({
-      subscriberId: admin.subscriberId, email: admin.email, name: admin.name, tenant: tenant.slug,
-      category: "announcement", title: `Welcome to ${tenant.name}`,
-      message: `Your company workspace "${tenant.name}" is ready. You can now add employees.`,
-      actionUrl: "/admin",
-    });
+    await notify(
+      { subscriberId: admin.subscriberId, email: admin.email, name: admin.name, tenant: tenant.slug },
+      { category: "announcement", title: `Welcome to ${tenant.name}`, message: `Your company workspace "${tenant.name}" is ready. You can now add employees.`, actionUrl: "/admin" }
+    );
     // ... and confirm to the superadmin(s).
     await notifyMany(superadmins(), {
       category: "system", title: "New tenant provisioned",

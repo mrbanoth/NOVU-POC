@@ -21,10 +21,29 @@ export function useInbox(subscriberId) {
     setNotifications((ns) => ns.map((n) => ({ ...n, read: true })));
   }, [subscriberId]);
 
+  // Grant notification permission AND subscribe the browser to Web Push (VAPID, no Firebase),
+  // so notifications pop even when this tab is closed.
   const enableAlerts = useCallback(async () => {
     if (typeof Notification === "undefined") return "unsupported";
-    return await Notification.requestPermission();
-  }, []);
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") return perm;
+    try {
+      if ("serviceWorker" in navigator && "PushManager" in window) {
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
+        const { publicKey } = await (await fetch("/api/push/vapid")).json();
+        if (publicKey) {
+          const sub =
+            (await reg.pushManager.getSubscription()) ||
+            (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(publicKey) }));
+          await fetch("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscriberId, subscription: sub }) });
+        }
+      }
+    } catch {
+      /* web push optional; in-app + foreground alert still work */
+    }
+    return "granted";
+  }, [subscriberId]);
 
   useEffect(() => {
     if (!subscriberId) return;
@@ -40,13 +59,9 @@ export function useInbox(subscriberId) {
       socket.on("connect", () => setLive(true));
       socket.on("disconnect", () => setLive(false));
       socket.on("connect_error", () => setLive(false));
-      socket.on("notification_received", (d) => {
-        const m = (d && d.message) || {};
-        const title = m.subject || m.payload?.title || "New notification";
-        const body = m.content || m.body || m.payload?.message || "";
-        popNative(title, body);
-        reload();
-      });
+      // Socket = instant in-app bell update. The native OS popup comes from Web Push (below),
+      // which fires even when the tab is closed, so we don't double-notify here.
+      socket.on("notification_received", () => reload());
     })();
     return () => { alive = false; setLive(false); if (socket) socket.disconnect(); };
   }, [subscriberId, reload]);
@@ -55,13 +70,9 @@ export function useInbox(subscriberId) {
   return { notifications, unread, live, markAllRead, enableAlerts, reload };
 }
 
-function popNative(title, body) {
-  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-    try {
-      new Notification("HRMS: " + title, {
-        body,
-        icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%237e52f4'/%3E%3C/svg%3E",
-      });
-    } catch {}
-  }
+function urlB64ToUint8(base64) {
+  const pad = "=".repeat((4 - (base64.length % 4)) % 4);
+  const b64 = (base64 + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(b64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }

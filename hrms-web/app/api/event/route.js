@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { userBySubscriber, adminsOf, employeesOf, allAdmins, listTenants } from "@/lib/store";
-import { notifyMany } from "@/lib/novu";
+import { notifyMany } from "@/lib/notify";
 
 // action definitions: how each role's action fans out
 const ACTIONS = {
