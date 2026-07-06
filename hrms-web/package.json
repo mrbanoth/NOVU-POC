@@ -1,0 +1,17 @@
+{
+  "name": "hrms-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3005",
+    "build": "next build",
+    "start": "next start -p 3005"
+  },
+  "dependencies": {
+    "next": "14.2.15",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "lucide-react": "0.454.0",
+    "socket.io-client": "4.7.5"
+  }
+}
