@@ -90,6 +90,50 @@ In the erase path, after the local notification rows are deleted, drop the Novu 
 3. For per-tenant SMTP, add one integration per tenant and register its identifier in
    `_TENANT_EMAIL_INTEGRATION` inside `novu_client.py` (prod: source from tenant settings).
 
-## 6. Rollback
+## 6. New endpoints notification-service should expose (in-app + push)
+
+Two small authenticated routes complete the enterprise integration. Both derive `tenant_id` and
+`user_id` from the JWT principal — never from client input.
+
+### 6a. In-app Inbox session (isolation-critical)
+
+```python
+from ..services.novu_inbox import mint_inbox_session
+
+@router.get("/inbox-session", response_model=APIResponse[dict])
+async def inbox_session(user_context: Annotated[dict, Depends(get_current_user_context)]):
+    session = mint_inbox_session(
+        tenant_id=user_context["tenant_id"],
+        user_id=user_context["user_id"],
+    )
+    return APIResponse.success_response(data=session.to_dict())
+```
+
+Frontend passes the returned `{applicationIdentifier, subscriberId, subscriberHash}` to the Novu
+`<Inbox/>` component (or the raw `/v1/inbox/session` call, as `demo/inbox/index.html` shows).
+**Enable HMAC on the In-App integration** or the isolation guarantee is not active (see docs/SECURITY.md).
+
+### 6b. Push device registration (future-mobile ready)
+
+```python
+from ..services.novu_client import ...          # existing
+from ..services.push_registration import register_device, unregister_device, PushProvider
+
+@router.post("/push-tokens", response_model=APIResponse[dict])
+async def register_push_token(body: PushTokenBody,
+                              user_context: Annotated[dict, Depends(get_current_user_context)]):
+    ok = await register_device(
+        tenant_id=user_context["tenant_id"],
+        user_id=user_context["user_id"],
+        device_token=body.device_token,
+        provider=PushProvider(body.provider),   # fcm (web+Android) | apns (iOS) | expo (RN) | push-webhook
+    )
+    return APIResponse.success_response(data={"registered": ok})
+```
+
+A future iOS/Android/Expo app registers its token through this same route with a different
+`provider` — no server changes. Logout / device-revoke calls `unregister_device(...)`.
+
+## 7. Rollback
 
 Set `NOTIFY_ENGINE=legacy` (or unset `NOVU_*`). The bridge is never called; zero behavioral change.

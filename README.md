@@ -19,13 +19,29 @@ inbox + preferences + digests (vs library-only Apprise/ntfy), and a clean multi-
 NOVU-POC/
 ├── README.md
 ├── docs/
-│   └── NOVU-POC-PLAN.md          # the plan (5 phases, showcase script, acceptance tests)
+│   ├── NOVU-POC-PLAN.md          # the 5-phase plan + showcase script
+│   ├── ARCHITECTURE.md           # topology, tenancy model, channel matrix, in-app isolation flow
+│   ├── SECURITY.md               # HMAC isolation, secrets, threat model, pre-prod checklist
+│   └── OPERATIONS.md             # run/scale/backup/upgrade, footprint, observability
 ├── deploy/
 │   ├── docker-compose.yml        # tailored Novu stack (api/worker/ws/dashboard/mongo/redis) + Mailpit
-│   ├── .env.example              # env template (committed)
-│   └── .env                      # real secrets (gitignored)
+│   ├── .env.example / .env       # env template (committed) / real secrets (gitignored)
+├── bridge/                       # backend integration — drops into services/notification unchanged
+│   ├── notification_service/
+│   │   ├── settings.py           # env-driven config + channel toggles + NOTIFY_ENGINE gate
+│   │   ├── novu_client.py        # workflow triggers + subscriber delete (best-effort)
+│   │   ├── novu_inbox.py         # HMAC subscriber-session minting  ← in-app isolation
+│   │   └── push_registration.py  # channel-agnostic device tokens (FCM/APNS/Expo/webhook)
+│   ├── demo_trigger.py           # standalone two-tenant trigger demo
+│   └── config.md                 # exact wire-up + patch for notification-service
+├── demo/                         # runnable, self-contained proof (no HRMS needed)
+│   ├── backend/app.py            # FastAPI stand-in for the 3 new notification-service endpoints
+│   ├── inbox/index.html          # in-app Inbox, live, two-tenant isolation
+│   └── push/index.html           # local push pipeline viewer
 └── scripts/
-    └── gen-secrets.ps1           # regenerate deploy/.env with fresh secrets
+    ├── gen-secrets.ps1           # regenerate deploy/.env with fresh secrets
+    ├── seed.ps1                  # provision workflows + fetch app identifier (idempotent)
+    └── smoke-test.ps1            # health + HMAC parity + live trigger round-trip
 ```
 
 ## Phase 0 — Run Novu locally
@@ -66,18 +82,41 @@ environment **Secret Key** (Settings → API Keys) — Phase 1 needs it.
 
 The HRMS `notification-service` (in its own compose network) calls the Novu API at
 `http://host.docker.internal:3010` — the same `host.docker.internal` pattern HRMS already uses
-for `FRONTEND_URL`. The bridge (Phase 1) is a small best-effort client added to
-notification-service behind a `NOTIFY_ENGINE=legacy|dual|novu` flag; nothing else in HRMS changes.
+for `FRONTEND_URL`. The bridge is a small best-effort client added to notification-service behind a
+`NOTIFY_ENGINE=legacy|dual|novu` flag; nothing else in HRMS changes.
+
+## Run the enterprise demo (in-app + push, tenant-isolated)
+
+After Phase 0 is up:
+
+1. Open http://localhost:4000 → create admin + org → **Settings → API Keys**.
+2. Put the **Secret Key** in `deploy/.env` as `NOVU_SECRET_KEY=…`, then:
+   ```powershell
+   powershell -File scripts/seed.ps1        # writes NOVU_APPLICATION_IDENTIFIER, creates workflows
+   ```
+   Finish the 3 dashboard integration steps it prints (SMTP→Mailpit, Push Webhook, **enable In-App HMAC**).
+3. Start the demo backend + pages:
+   ```powershell
+   cd demo/backend; pip install -r requirements.txt
+   uvicorn app:app --host 127.0.0.1 --port 4200
+   ```
+4. Open http://localhost:4200 → switch tenant **acme ↔ globex** with the *same* user id →
+   two isolated feeds. Send a test → email lands in Mailpit. Push pipeline at http://localhost:4200/push.
+5. `powershell -File scripts/smoke-test.ps1` for an automated health + trigger check.
 
 ## Status
 
-- [x] **Phase 0** — self-hosted Novu stack + Mailpit, tailored ports/names, secrets, run docs
-      — **verified up on Docker 29.4.3**: all 7 containers healthy; `:3010/v1/health-check`
-      reports `db/workflowQueue/apiVersion 3.17.0` all `up`; dashboard :4000 and Mailpit :8025 return 200.
-- [ ] Phase 1 — bridge client in notification-service (`NOTIFY_ENGINE` flag)
-- [ ] Phase 2 — email leg for business events + digest + per-tenant SMTP
-- [ ] Phase 3 — web push (FCM)
-- [ ] Phase 4 — isolation / resilience / DSR proofs
+- [x] **Phase 0** — self-hosted Novu stack + Mailpit — **verified up on Docker 29.4.3** (7/7 healthy,
+      `:3010/v1/health-check` all `up`, dashboard + Mailpit 200).
+- [x] **Phase 1** — bridge (`settings`, `novu_client`, `novu_inbox`, `push_registration`);
+      **HMAC verified byte-identical to Novu's algorithm** (Python == PowerShell == Novu source).
+- [x] **In-app (Inbox)** — HMAC-isolated session minting + runnable two-tenant demo.
+- [x] **Push** — channel-agnostic registration (FCM/APNS/Expo/webhook) + local pipeline demo.
+- [ ] Phase 2 — email templates + digest + per-tenant SMTP (needs dashboard workflows).
+- [ ] Phase 4 — record the isolation / resilience / DSR proofs.
+
+See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** and **[docs/SECURITY.md](docs/SECURITY.md)** for the
+enterprise design and isolation guarantees.
 
 Reference (read-only): the upstream Novu clone lives at `..\Novu\novu` and is used only to
 source the official compose file and read code — it is never built from source.
