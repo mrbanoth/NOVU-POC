@@ -39,6 +39,6 @@ if ($secret) {
     $r = Invoke-RestMethod -Method POST -Uri "$api/v1/events/trigger" -Headers @{ Authorization="ApiKey $secret"; 'Content-Type'='application/json' } -Body $body
     if ($r.data.acknowledged -or $r.acknowledged) { Ok "trigger acknowledged (transactionId $($r.data.transactionId))" }
     else { Bad "unexpected trigger response: $($r | ConvertTo-Json -Compress)" }
-  } catch { Bad "trigger failed (is the 'hrms-generic' workflow created & active? run seed.ps1): $($_.Exception.Message)" }
+  } catch { Bad "trigger failed (is the 'hrms-generic' workflow created & active? run bootstrap.ps1): $($_.Exception.Message)" }
 }
 Write-Host "`nCheck delivery in the Dashboard Activity Feed (http://localhost:4000) and Mailpit (http://localhost:8025)." -ForegroundColor Cyan

@@ -68,7 +68,7 @@ async def health() -> dict:
 async def inbox_session(tenant: str = Query(...), user: str = Query(...)) -> dict:
     """In real HRMS: derive tenant/user from the JWT; never from the client."""
     if not settings.application_identifier:
-        raise HTTPException(400, "NOVU_APPLICATION_IDENTIFIER not set — run scripts/seed.ps1 or set it in deploy/.env")
+        raise HTTPException(400, "NOVU_APPLICATION_IDENTIFIER not set - run scripts/bootstrap.ps1 or set it in deploy/.env")
     return mint_inbox_session(tenant_id=tenant, user_id=user).to_dict()
 
 

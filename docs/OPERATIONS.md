@@ -35,11 +35,11 @@ Automated check: `scripts/smoke-test.ps1` (health + a trigger round-trip).
 
 ## 3. First-run provisioning
 
-1. Open the dashboard → create admin + organization (local, any credentials).
-2. Settings → API Keys → copy the **Secret Key** and the **Application Identifier**.
-3. Put them in `deploy/.env` (`NOVU_SECRET_KEY`, `NOVU_APPLICATION_IDENTIFIER`).
-4. Run `scripts/seed.ps1` to create integrations (SMTP→Mailpit, Push Webhook) + workflows and
-   enable Inbox HMAC. (Steps the API can't do are printed as a short manual checklist.)
+Run **`scripts/bootstrap.ps1`** — it does everything through Novu's API with no dashboard clicks:
+registers the admin + organization, reads the environment's Secret Key + Application Identifier,
+writes them into `deploy/.env`, enables Inbox HMAC, and creates the SMTP (Mailpit) + Push Webhook
+integrations and the HRMS workflows. Idempotent — safe to re-run. Change the `CONFIG` block at the top
+to reuse in another project.
 
 ## 4. Footprint
 

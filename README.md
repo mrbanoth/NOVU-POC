@@ -40,7 +40,7 @@ NOVU-POC/
 │   └── push/index.html           # local push pipeline viewer
 └── scripts/
     ├── gen-secrets.ps1           # regenerate deploy/.env with fresh secrets
-    ├── seed.ps1                  # provision workflows + fetch app identifier (idempotent)
+    ├── bootstrap.ps1             # one-command auto-provision (org, keys, HMAC, integrations, workflows)
     └── smoke-test.ps1            # health + HMAC parity + live trigger round-trip
 ```
 
