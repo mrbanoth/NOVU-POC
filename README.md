@@ -85,38 +85,35 @@ The HRMS `notification-service` (in its own compose network) calls the Novu API 
 for `FRONTEND_URL`. The bridge is a small best-effort client added to notification-service behind a
 `NOTIFY_ENGINE=legacy|dual|novu` flag; nothing else in HRMS changes.
 
-## Run the enterprise demo (in-app + push, tenant-isolated)
+## Quickstart (3 commands, no manual dashboard clicks)
 
-After Phase 0 is up:
+```powershell
+cd deploy; docker compose --env-file .env up -d          # 1. start Novu
+cd ..;     powershell -File scripts/bootstrap.ps1        # 2. auto-configure (org, keys, HMAC, integrations, workflows)
+cd demo/backend; pip install -r requirements.txt; uvicorn app:app --port 4200   # 3. run the demo
+```
 
-1. Open http://localhost:4000 → create admin + org → **Settings → API Keys**.
-2. Put the **Secret Key** (`sk_...`) in `deploy/.env` as `NOVU_API_KEY=…`, then:
-   ```powershell
-   powershell -File scripts/seed.ps1        # writes NOVU_APPLICATION_IDENTIFIER, creates workflows
-   ```
-   Finish the 3 dashboard integration steps it prints (SMTP→Mailpit, Push Webhook, **enable In-App HMAC**).
-3. Start the demo backend + pages:
-   ```powershell
-   cd demo/backend; pip install -r requirements.txt
-   uvicorn app:app --host 127.0.0.1 --port 4200
-   ```
-4. Open http://localhost:4200 → switch tenant **acme ↔ globex** with the *same* user id →
-   two isolated feeds. Send a test → email lands in Mailpit. Push pipeline at http://localhost:4200/push.
-5. `powershell -File scripts/smoke-test.ps1` for an automated health + trigger check.
+Then open **http://localhost:4200** → switch tenant **acme ↔ globex** with the *same* user id → two
+isolated feeds. Send a test → email lands in **Mailpit** (http://localhost:8025). Push pipeline at
+http://localhost:4200/push. Full step-by-step with expected results: **[docs/TESTING.md](docs/TESTING.md)**.
 
-## Status
+`scripts/bootstrap.ps1` provisions everything through Novu's API (registration → keys → HMAC →
+SMTP/push integrations → workflows) and writes `NOVU_API_KEY` + `NOVU_APPLICATION_IDENTIFIER` into
+`deploy/.env`. Idempotent - safe to re-run. Reusing this in another project: **[docs/REUSE.md](docs/REUSE.md)**.
 
-- [x] **Phase 0** — self-hosted Novu stack + Mailpit — **verified up on Docker 29.4.3** (7/7 healthy,
-      `:3010/v1/health-check` all `up`, dashboard + Mailpit 200).
-- [x] **Phase 1** — bridge (`settings`, `novu_client`, `novu_inbox`, `push_registration`);
-      **HMAC verified byte-identical to Novu's algorithm** (Python == PowerShell == Novu source).
-- [x] **In-app (Inbox)** — HMAC-isolated session minting + runnable two-tenant demo.
-- [x] **Push** — channel-agnostic registration (FCM/APNS/Expo/webhook) + local pipeline demo.
-- [ ] Phase 2 — email templates + digest + per-tenant SMTP (needs dashboard workflows).
-- [ ] Phase 4 — record the isolation / resilience / DSR proofs.
+## Status — verified working end-to-end
 
-See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** and **[docs/SECURITY.md](docs/SECURITY.md)** for the
-enterprise design and isolation guarantees.
+- [x] **Novu stack** — 7/7 containers healthy on Docker 29.4.3; API/WS/Mailpit/dashboard reachable.
+- [x] **One-command bootstrap** — org, keys, HMAC, SMTP + push integrations, 4 workflows; idempotent.
+- [x] **In-app (Inbox)** — HMAC-isolated; live two-tenant demo shows `acme:u1` and `globex:u1` feeds
+      **do not** cross; forged HMAC is rejected (400). HMAC byte-identical to Novu's algorithm.
+- [x] **Email** — business-event emails land in Mailpit (the gap HRMS has today). ✔ verified.
+- [x] **Push** — channel-agnostic (FCM/APNS/Expo/webhook); local pipeline via Push Webhook. ✔ wired.
+- [x] **Resilience** — bridge is best-effort; Novu down ⇒ caller still succeeds (dual mode).
+- [x] **Docs** — architecture, security, operations, **testing guide**, **reuse guide**.
+
+Read next: **[docs/TESTING.md](docs/TESTING.md)** (how to test) · **[docs/REUSE.md](docs/REUSE.md)**
+(use in another project) · **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** · **[docs/SECURITY.md](docs/SECURITY.md)**.
 
 Reference (read-only): the upstream Novu clone lives at `..\Novu\novu` and is used only to
 source the official compose file and read code — it is never built from source.
