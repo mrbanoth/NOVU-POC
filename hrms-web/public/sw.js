@@ -15,9 +15,16 @@ self.addEventListener("push", (event) => {
       icon: "/icon.png", // real PNG (Chrome-on-Windows can drop notifications with SVG/data-URI icons)
       badge: "/icon.png",
     });
-    // Tell any open page that the push arrived (proof the SW handler fired).
     const cs = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    // Tell any open page that the push arrived (drives the in-app toast when a tab is open).
     cs.forEach((c) => c.postMessage({ __hrmsPush: data }));
+    // Beacon the server so we can PROVE the SW fired even with NO tab open (POC verification).
+    try {
+      await fetch("/api/push/received", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: data.title, body: data.body, openTabs: cs.length, at: Date.now() }),
+      });
+    } catch (e) {}
   })());
 });
 
