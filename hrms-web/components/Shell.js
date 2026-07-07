@@ -50,7 +50,10 @@ export default function Shell({ user, children }) {
           )}
         </div>
         <span className="chip"><span className={"av " + roleAv(user.role)}>{initials(user.name)}</span>{user.name}<span className="tag">{roleLabel}</span></span>
-        <button className="btn ghost sm" onClick={() => { clearUser(); router.replace("/login"); }}><LogOut size={15} /> Logout</button>
+        <button className="btn ghost sm" onClick={async () => {
+          try { const r = await navigator.serviceWorker?.getRegistration(); const s = await r?.pushManager?.getSubscription(); await s?.unsubscribe(); } catch {}
+          clearUser(); router.replace("/login");
+        }}><LogOut size={15} /> Logout</button>
       </div>
       <div className="container">{children}</div>
     </div>
