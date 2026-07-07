@@ -6,6 +6,7 @@ import { io } from "socket.io-client";
 export function useInbox(subscriberId) {
   const [notifications, setNotifications] = useState([]);
   const [live, setLive] = useState(false);
+  const [lastPush, setLastPush] = useState(null);
   const sockRef = useRef(null);
 
   const reload = useCallback(async () => {
@@ -22,27 +23,32 @@ export function useInbox(subscriberId) {
   }, [subscriberId]);
 
   // Grant notification permission AND subscribe the browser to Web Push (VAPID, no Firebase),
-  // so notifications pop even when this tab is closed.
+  // so notifications pop even when this tab is closed. Returns {ok, reason}.
   const enableAlerts = useCallback(async () => {
-    if (typeof Notification === "undefined") return "unsupported";
+    if (typeof Notification === "undefined") return { ok: false, reason: "This browser has no Notifications API" };
     const perm = await Notification.requestPermission();
-    if (perm !== "granted") return perm;
+    if (perm !== "granted") return { ok: false, reason: perm === "denied" ? "You blocked notifications for this site" : "Permission not granted" };
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return { ok: false, reason: "Push not supported here" };
     try {
-      if ("serviceWorker" in navigator && "PushManager" in window) {
-        const reg = await navigator.serviceWorker.register("/sw.js");
-        await navigator.serviceWorker.ready;
-        const { publicKey } = await (await fetch("/api/push/vapid")).json();
-        if (publicKey) {
-          const sub =
-            (await reg.pushManager.getSubscription()) ||
-            (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(publicKey) }));
-          await fetch("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscriberId, subscription: sub }) });
-        }
-      }
-    } catch {
-      /* web push optional; in-app + foreground alert still work */
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+      const { publicKey } = await (await fetch("/api/push/vapid")).json();
+      if (!publicKey) return { ok: false, reason: "Server has no VAPID key" };
+      const sub =
+        (await reg.pushManager.getSubscription()) ||
+        (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(publicKey) }));
+      const r = await fetch("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscriberId, subscription: sub }) });
+      if (!r.ok) return { ok: false, reason: "Server rejected the subscription" };
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, reason: String(e?.message || e) };
     }
-    return "granted";
+  }, [subscriberId]);
+
+  // Send a push to my own devices right now (verify end-to-end). Returns {devices, sent, results}.
+  const testPush = useCallback(async () => {
+    const r = await fetch("/api/push/self-test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscriberId }) });
+    return await r.json();
   }, [subscriberId]);
 
   useEffect(() => {
@@ -66,8 +72,22 @@ export function useInbox(subscriberId) {
     return () => { alive = false; setLive(false); if (socket) socket.disconnect(); };
   }, [subscriberId, reload]);
 
+  // In-app toast when a Web Push reaches the service worker — visible proof the push arrived
+  // even if Windows/Chrome suppresses the OS banner.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
+    const handler = (e) => {
+      if (e.data && e.data.__hrmsPush) {
+        setLastPush({ ...e.data.__hrmsPush, at: Date.now() });
+        reload();
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", handler);
+    return () => navigator.serviceWorker.removeEventListener("message", handler);
+  }, [reload]);
+
   const unread = notifications.filter((n) => !n.read).length;
-  return { notifications, unread, live, markAllRead, enableAlerts, reload };
+  return { notifications, unread, live, lastPush, markAllRead, enableAlerts, testPush, reload };
 }
 
 function urlB64ToUint8(base64) {

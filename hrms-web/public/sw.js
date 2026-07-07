@@ -9,8 +9,11 @@ self.addEventListener("push", (event) => {
     await self.registration.showNotification("HRMS: " + data.title, {
       body: data.body,
       tag: "hrms-" + Date.now(),
+      requireInteraction: true, // stay on screen until the user dismisses it (unmissable)
+      renotify: true,
       data: { url: data.url },
-      icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Crect width='96' height='96' rx='20' fill='%237e52f4'/%3E%3Ctext x='48' y='62' font-size='46' text-anchor='middle' fill='white' font-family='sans-serif'%3EH%3C/text%3E%3C/svg%3E",
+      icon: "/icon.png", // real PNG (Chrome-on-Windows can drop notifications with SVG/data-URI icons)
+      badge: "/icon.png",
     });
     // Tell any open page that the push arrived (proof the SW handler fired).
     const cs = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
