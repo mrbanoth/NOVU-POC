@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 90">
+  <rect x="6" y="13" width="64" height="64" rx="15" fill="#6C5CE7"/>
+  <path d="M16 46 L60 25 L47 67 L39 52 Z" fill="#fff"/>
+  <path d="M39 52 L60 25 L45 58 Z" fill="#C9C0FF"/>
+  <text x="82" y="61" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="46" font-weight="700" fill="#6C5CE7">NotiFly</text>
+</svg>
