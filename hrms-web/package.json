@@ -8,6 +8,7 @@
     "start": "next start -p 3005"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.0",
     "lucide-react": "0.454.0",
     "next": "14.2.15",
     "react": "18.3.1",

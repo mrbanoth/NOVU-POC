@@ -1,8 +1,7 @@
 // Our own Web Push (VAPID) - real browser push, NO Firebase / no external service.
-// Uses the W3C Push API; the browser's own push endpoint (Google/Mozilla) delivers it.
-import fs from "fs";
-import path from "path";
+// Subscriptions live in the async data layer (Upstash on Vercel, file locally).
 import webpush from "web-push";
+import { getJSON, setJSON } from "./data";
 
 const PUB = process.env.VAPID_PUBLIC_KEY || "";
 const PRIV = process.env.VAPID_PRIVATE_KEY || "";
@@ -11,44 +10,43 @@ export const VAPID_PUBLIC_KEY = PUB;
 
 if (PUB && PRIV) webpush.setVapidDetails(SUBJECT, PUB, PRIV);
 
-const SUBS_PATH = path.join(process.cwd(), "data", "subs.json");
+const KEY = "hrms:subs"; // { [subscriberId]: [subscription, ...] }
 
-function read() {
-  try { return JSON.parse(fs.readFileSync(SUBS_PATH, "utf-8")); } catch { return {}; }
-}
-function write(db) {
-  fs.mkdirSync(path.dirname(SUBS_PATH), { recursive: true });
-  fs.writeFileSync(SUBS_PATH, JSON.stringify(db, null, 2));
+export async function getSubscriptions(subscriberId) {
+  const all = await getJSON(KEY, {});
+  return all[subscriberId] || [];
 }
 
 // Save a browser push subscription for a subscriber (dedupe by endpoint).
-export function saveSubscription(subscriberId, subscription) {
-  const db = read();
-  const list = db[subscriberId] || [];
+export async function saveSubscription(subscriberId, subscription) {
+  const all = await getJSON(KEY, {});
+  const list = all[subscriberId] || [];
   if (!list.find((s) => s.endpoint === subscription.endpoint)) list.push(subscription);
-  db[subscriberId] = list;
-  write(db);
+  all[subscriberId] = list;
+  await setJSON(KEY, all);
 }
 
 // Send a native browser push to every device of a subscriber. Best-effort; prunes dead subs.
+// Returns { sent, results } so callers can report status.
 export async function sendPush(subscriberId, { title, body, url }) {
-  if (!PUB || !PRIV) return 0;
-  const db = read();
-  const list = db[subscriberId] || [];
-  if (!list.length) return 0;
+  if (!PUB || !PRIV) return { sent: 0, results: [] };
+  const all = await getJSON(KEY, {});
+  const list = all[subscriberId] || [];
+  if (!list.length) return { sent: 0, results: [] };
   const payload = JSON.stringify({ title, body, url: url || "/" });
-  let sent = 0;
+  const results = [];
   const keep = [];
   for (const sub of list) {
     try {
-      await webpush.sendNotification(sub, payload);
-      sent++; keep.push(sub);
+      const r = await webpush.sendNotification(sub, payload);
+      results.push({ ok: true, statusCode: r.statusCode });
+      keep.push(sub);
     } catch (e) {
-      // 404/410 = expired subscription -> drop it; other errors -> keep and ignore
-      if (!(e && (e.statusCode === 404 || e.statusCode === 410))) keep.push(sub);
+      results.push({ ok: false, statusCode: e.statusCode, message: String(e.body || e.message || e).slice(0, 120) });
+      if (!(e && (e.statusCode === 404 || e.statusCode === 410))) keep.push(sub); // prune expired
     }
   }
-  db[subscriberId] = keep;
-  write(db);
-  return sent;
+  all[subscriberId] = keep;
+  await setJSON(KEY, all);
+  return { sent: results.filter((r) => r.ok).length, results };
 }

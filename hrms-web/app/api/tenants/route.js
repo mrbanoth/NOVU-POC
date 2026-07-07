@@ -3,7 +3,7 @@ import { listTenants, createTenant, superadmins } from "@/lib/store";
 import { notify, notifyMany } from "@/lib/notify";
 
 export async function GET() {
-  return NextResponse.json({ tenants: listTenants() });
+  return NextResponse.json({ tenants: await listTenants() });
 }
 
 export async function POST(req) {
@@ -11,7 +11,7 @@ export async function POST(req) {
     const { companyName, adminName, adminEmail, password } = await req.json();
     if (!companyName || !adminName || !adminEmail || !password)
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
-    const { tenant, admin } = createTenant({ companyName, adminName, adminEmail, password });
+    const { tenant, admin } = await createTenant({ companyName, adminName, adminEmail, password });
 
     // Notify the newly-created tenant admin (welcome) ...
     await notify(
@@ -19,7 +19,7 @@ export async function POST(req) {
       { category: "announcement", title: `Welcome to ${tenant.name}`, message: `Your company workspace "${tenant.name}" is ready. You can now add employees.`, actionUrl: "/admin" }
     );
     // ... and confirm to the superadmin(s).
-    await notifyMany(superadmins(), {
+    await notifyMany(await superadmins(), {
       category: "system", title: "New tenant provisioned",
       message: `Tenant "${tenant.name}" was created (admin ${admin.email}).`, actionUrl: "/superadmin",
     });

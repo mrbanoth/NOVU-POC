@@ -15,7 +15,9 @@
   that also registers a brand-new org.
 
   Usage:  powershell -ExecutionPolicy Bypass -File scripts/configure.ps1
+          powershell -File scripts/configure.ps1 -Api https://api.novu.co   # target Novu Cloud
 #>
+param([string]$Api = "http://localhost:3010")
 
 $ErrorActionPreference = 'Stop'
 
@@ -37,7 +39,6 @@ $envf = Join-Path $root 'deploy\.env'
 $envMap = @{}
 foreach ($line in Get-Content $envf) { $t=$line.Trim(); if (-not $t -or $t.StartsWith('#') -or -not $t.Contains('=')) { continue }; $k,$v=$t.Split('=',2); $envMap[$k.Trim()]=$v.Trim() }
 $key = $envMap['NOVU_API_KEY']
-$api = 'http://localhost:3010'
 if (-not $key) { throw "NOVU_API_KEY missing in deploy/.env. Copy the Secret Key from Dashboard > Developer > API Keys." }
 $h = @{ Authorization="ApiKey $key"; 'Content-Type'='application/json' }
 function J($o){ $o | ConvertTo-Json -Depth 20 }
